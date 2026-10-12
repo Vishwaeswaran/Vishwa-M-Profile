@@ -9,7 +9,7 @@
 
   // 3D particle-web background inspired by the supplied reference image.
   // The mesh is projected in perspective and continuously ripples like a living neural field.
-  if (canvas && ctx && !reduceMotion) {
+  if (canvas && ctx) {
     let width=0,height=0,dpr=1,raf=0,lastFrame=0,phase=0;
     const pointer={x:0,y:0,tx:0,ty:0};
     let stars=[], mesh=[], cols=32, rows=17;
@@ -38,7 +38,7 @@
     function draw(time){
       raf=0;if(document.hidden)return;
       if(time-lastFrame<25){raf=requestAnimationFrame(draw);return;}
-      lastFrame=time;phase=time*.00042;
+      lastFrame=time;phase=time*(reduceMotion?.00018:.00042);
       ctx.clearRect(0,0,width,height);
       // Deep-space glow, like the reference, while preserving page readability.
       const haze=ctx.createRadialGradient(width*.52,height*.52,0,width*.52,height*.52,Math.max(width,height)*.78);
@@ -126,7 +126,7 @@
     window.addEventListener("pointermove",e=>{pointer.tx=(e.clientX/Math.max(1,width)-.5)*45;pointer.ty=(e.clientY/Math.max(1,height)-.5)*35;},{passive:true});
     document.addEventListener("visibilitychange",()=>document.hidden?stop():start());
     resize();start();
-  } else if(canvas) { canvas.style.display="none"; }
+  } else if(canvas && !ctx) { canvas.style.display="none"; }
 
   if (card && !reduceMotion && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     const visual = card.closest(".hero-visual");
