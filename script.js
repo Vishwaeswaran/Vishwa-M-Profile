@@ -7,85 +7,126 @@
   const year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
 
-  // Progressive enhancement only: content is already visible in the HTML/CSS.
+  // 3D particle-web background inspired by the supplied reference image.
+  // The mesh is projected in perspective and continuously ripples like a living neural field.
   if (canvas && ctx && !reduceMotion) {
-    let width = 0, height = 0, dpr = 1, points = [], raf = 0, lastFrame = 0;
-    const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
-    const palette = ["#9a6bff", "#a9ff79", "#78cfff", "#9b8cff"];
-    const countForWidth = () => Math.min(66, Math.max(28, Math.round(width / 24)));
-    function resize() {
-      width = window.innerWidth; height = window.innerHeight;
-      dpr = Math.min(window.devicePixelRatio || 1, 1.6);
-      canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
-      canvas.style.width = width + "px"; canvas.style.height = height + "px";
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = countForWidth();
-      points = Array.from({length: count}, (_, i) => ({
-        x: Math.random() * width, y: Math.random() * height,
-        ox: Math.random() * width, oy: Math.random() * height,
-        vx: (Math.random() - .5) * .22, vy: (Math.random() - .5) * .22,
-        r: 1.3 + Math.random() * 2.1, phase: Math.random() * Math.PI * 2,
-        color: palette[i % palette.length]
+    let width=0,height=0,dpr=1,raf=0,lastFrame=0,phase=0;
+    const pointer={x:0,y:0,tx:0,ty:0};
+    let stars=[], mesh=[], cols=32, rows=17;
+    const colors=["#b85cff","#d16bff","#8c79ff","#63f4d1","#73dfff","#a4ffbd"];
+    function resize(){
+      width=window.innerWidth;height=window.innerHeight;
+      dpr=Math.min(window.devicePixelRatio||1,1.5);
+      canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
+      canvas.style.width=width+"px";canvas.style.height=height+"px";
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      cols=width<600?22:34;rows=width<600?13:18;
+      stars=Array.from({length:Math.min(210,Math.round(width*height/5200))},()=>({
+        x:Math.random()*width,y:Math.random()*height,z:.2+Math.random()*.8,
+        r:.35+Math.random()*1.25,a:.15+Math.random()*.65,tw:Math.random()*6.28
       }));
+      mesh=[];
+      for(let r=0;r<rows;r++)for(let col=0;col<cols;col++)
+        mesh.push({r,col,seed:Math.random()*6.28,color:colors[Math.floor(Math.random()*colors.length)]});
     }
-    function draw(time) {
-      raf = 0;
-      if (document.hidden) return;
-      if (time - lastFrame < 28) { raf = requestAnimationFrame(draw); return; }
-      lastFrame = time;
-      ctx.clearRect(0, 0, width, height);
-      pointer.x += (pointer.tx - pointer.x) * .025;
-      pointer.y += (pointer.ty - pointer.y) * .025;
-      const mobile = width < 700;
-      for (let i = 0; i < points.length; i++) {
-        const p = points[i];
-        p.x += p.vx; p.y += p.vy; p.phase += .008;
-        if (p.x < -30 || p.x > width + 30) p.vx *= -1;
-        if (p.y < -30 || p.y > height + 30) p.vy *= -1;
-        const px = p.x + (mobile ? 0 : pointer.x * .012 * (i % 4 + 1));
-        const py = p.y + (mobile ? 0 : pointer.y * .012 * (i % 4 + 1));
-        for (let j = i + 1; j < points.length; j++) {
-          const q = points[j];
-          const qx = q.x + (mobile ? 0 : pointer.x * .012 * (j % 4 + 1));
-          const qy = q.y + (mobile ? 0 : pointer.y * .012 * (j % 4 + 1));
-          const dx = px - qx, dy = py - qy, dist = Math.sqrt(dx*dx + dy*dy);
-          const maxDist = mobile ? 105 : 145;
-          if (dist < maxDist) {
-            ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(qx, qy);
-            ctx.strokeStyle = "rgba(126,111,255," + ((1 - dist / maxDist) * .22) + ")";
-            ctx.lineWidth = .65; ctx.stroke();
-          }
+    function project(x,y,z){
+      const focal=Math.max(width,height)*.92;
+      const cameraZ=700;
+      const scale=focal/(focal+z+cameraZ);
+      return {x:width/2+x*scale+pointer.x*-.22*scale,y:height*.57+y*scale+pointer.y*-.16*scale,scale};
+    }
+    function draw(time){
+      raf=0;if(document.hidden)return;
+      if(time-lastFrame<25){raf=requestAnimationFrame(draw);return;}
+      lastFrame=time;phase=time*.00042;
+      ctx.clearRect(0,0,width,height);
+      // Deep-space glow, like the reference, while preserving page readability.
+      const haze=ctx.createRadialGradient(width*.52,height*.52,0,width*.52,height*.52,Math.max(width,height)*.78);
+      haze.addColorStop(0,"rgba(40,26,85,.17)");haze.addColorStop(.48,"rgba(14,19,44,.1)");haze.addColorStop(1,"rgba(3,5,14,0)");
+      ctx.fillStyle=haze;ctx.fillRect(0,0,width,height);
+      for(const s of stars){
+        const tw=.65+.35*Math.sin(time*.0007+s.tw);
+        ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+        ctx.fillStyle="rgba(205,210,255,"+(s.a*tw)+")";ctx.fill();
+      }
+      pointer.x+=(pointer.tx-pointer.x)*.035;pointer.y+=(pointer.ty-pointer.y)*.035;
+      const pts=[];
+      for(let r=0;r<rows;r++){
+        const line=[];
+        for(let col=0;col<cols;col++){
+          const u=col/(cols-1),v=r/(rows-1);
+          // A perspective mesh with long rolling waves and a dense lower network.
+          const x=(u-.5)*width*1.72;
+          const depth=v;
+          const y=(v-.43)*height*1.2 + Math.sin(u*7.1+phase*1.8+v*2.2)*42
+            +Math.sin(u*13.5-phase*1.15+v*3.4)*16
+            +Math.cos(u*4.4-phase+v*5.2)*18;
+          const z=100+v*650+Math.sin(u*5.5+phase)*34;
+          const p=project(x,y,z);
+          p.u=u;p.v=v;p.wave=y;p.col=col;p.row=r;
+          p.color=colors[(col+r*2)%colors.length];
+          line.push(p);
         }
-        const glow = 0.45 + (Math.sin(p.phase) + 1) * .22;
-        ctx.beginPath(); ctx.arc(px, py, p.r * 4.2, 0, Math.PI * 2);
-        ctx.fillStyle = p.color; ctx.globalAlpha = .055 * glow; ctx.fill(); ctx.globalAlpha = 1;
-        ctx.beginPath(); ctx.arc(px, py, p.r * (1 + Math.sin(p.phase) * .12), 0, Math.PI * 2);
-        ctx.fillStyle = p.color; ctx.globalAlpha = glow; ctx.fill(); ctx.globalAlpha = 1;
+        pts.push(line);
       }
-      // A few moving light pulses travel along the network.
-      const pulseCount = 4;
-      for (let k = 0; k < pulseCount; k++) {
-        const i = (Math.floor(time / 1500) + k * 7) % points.length;
-        const j = (i + 1 + k * 3) % points.length;
-        const a = points[i], b = points[j], t = (time / 1600 + k * .27) % 1;
-        const x = a.x + (b.x - a.x) * t, y = a.y + (b.y - a.y) * t;
-        ctx.beginPath(); ctx.arc(x, y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = k % 2 ? "#b6ff70" : "#c2a7ff"; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 12; ctx.fill(); ctx.shadowBlur = 0;
+      // Curved flowing strands running through the upper portion of the scene.
+      for(let strand=0;strand<5;strand++){
+        ctx.beginPath();
+        for(let i=0;i<=100;i++){
+          const u=i/100;
+          const x=(u-.5)*width*1.9;
+          const y=(strand-2)*22+Math.sin(u*4.8+phase*1.2+strand*.65)*height*.19
+            +Math.sin(u*8.4-phase*.7+strand)*height*.035-height*.07;
+          const p=project(x,y,250+strand*24);
+          if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+        }
+        const grad=ctx.createLinearGradient(0,height*.2,width,height*.45);
+        grad.addColorStop(0,"rgba(189,94,255,0)");
+        grad.addColorStop(.28,strand%2?"rgba(205,96,255,.25)":"rgba(134,119,255,.3)");
+        grad.addColorStop(.72,strand%2?"rgba(109,255,201,.27)":"rgba(96,207,255,.28)");
+        grad.addColorStop(1,"rgba(116,239,214,0)");
+        ctx.strokeStyle=grad;ctx.lineWidth=strand===2?1.8:1;ctx.stroke();
       }
-      raf = requestAnimationFrame(draw);
+      // Perspective mesh connections.
+      for(let r=0;r<rows;r++){
+        for(let col=0;col<cols;col++){
+          const p=pts[r][col];
+          const near=pts[r+1]?.[col];
+          const right=pts[r][col+1];
+          const diag=pts[r+1]?.[col+1];
+          const depthAlpha=.12+(r/rows)*.36;
+          const stroke=(q,alpha)=>{if(!q)return;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle="rgba(151,133,255,"+(alpha)+")";ctx.lineWidth=.55+(r/rows)*.3;ctx.stroke();};
+          stroke(right,depthAlpha*.8);stroke(near,depthAlpha);
+          if(diag && (col%2===0 || r%3===0))stroke(diag,depthAlpha*.42);
+          // Glowing neuron points with varied colors and soft bloom.
+          const pulse=.65+.35*Math.sin(time*.0013+p.u*11+p.v*8);
+          const radius=(.7+(r/rows)*1.5)*pulse;
+          ctx.beginPath();ctx.arc(p.x,p.y,radius*4.6,0,Math.PI*2);
+          ctx.fillStyle=p.color;ctx.globalAlpha=.09+(r/rows)*.1;ctx.fill();ctx.globalAlpha=1;
+          ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);
+          ctx.fillStyle=p.color;ctx.globalAlpha=.52+(r/rows)*.42;ctx.fill();ctx.globalAlpha=1;
+        }
+      }
+      // Traveling light packets along the network.
+      for(let k=0;k<12;k++){
+        const r=(k*3+Math.floor(time/620))%(rows-1);
+        const col=(k*5+Math.floor(time/410))%(cols-1);
+        const a=pts[r][col],b=pts[r+1][Math.min(cols-1,col+1)];
+        const t=(time*.00055+k*.173)%1;
+        const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
+        ctx.beginPath();ctx.arc(x,y,1.1+(k%3)*.35,0,Math.PI*2);
+        ctx.fillStyle=k%3===0?"#d78aff":k%3===1?"#7fffe0":"#a8a0ff";
+        ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
+      }
+      raf=requestAnimationFrame(draw);
     }
-    function start() { if (!raf && !document.hidden) raf = requestAnimationFrame(draw); }
-    function stop() { if (raf) cancelAnimationFrame(raf); raf = 0; }
-    window.addEventListener("resize", resize, { passive: true });
-    window.addEventListener("pointermove", e => {
-      pointer.tx = (e.clientX / Math.max(1, width) - .5) * 30;
-      pointer.ty = (e.clientY / Math.max(1, height) - .5) * 30;
-    }, { passive: true });
-    document.addEventListener("visibilitychange", () => document.hidden ? stop() : start());
-    resize(); start();
-  } else if (canvas) {
-    canvas.style.display = "none";
-  }
+    function start(){if(!raf&&!document.hidden)raf=requestAnimationFrame(draw);}
+    function stop(){if(raf)cancelAnimationFrame(raf);raf=0;}
+    window.addEventListener("resize",resize,{passive:true});
+    window.addEventListener("pointermove",e=>{pointer.tx=(e.clientX/Math.max(1,width)-.5)*45;pointer.ty=(e.clientY/Math.max(1,height)-.5)*35;},{passive:true});
+    document.addEventListener("visibilitychange",()=>document.hidden?stop():start());
+    resize();start();
+  } else if(canvas) { canvas.style.display="none"; }
 
   if (card && !reduceMotion && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     const visual = card.closest(".hero-visual");
