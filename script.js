@@ -148,8 +148,52 @@
         document.addEventListener("visibilitychange", () => { if (!document.hidden && !raf) raf = requestAnimationFrame(animate); });
         animate(0);
       } catch (error) {
-        console.error("3D neural background could not initialize:", error);
-        canvas.style.display = "none";
+        console.error("Three.js background failed; starting animated neural fallback.", error);
+        // Keep the requested visual even when WebGL or the external module CDN is unavailable.
+        const fallback = document.createElement("canvas");
+        fallback.id = "neural-fallback";
+        fallback.setAttribute("aria-hidden", "true");
+        document.body.insertBefore(fallback, document.body.firstChild);
+        const fctx = fallback.getContext("2d");
+        if (!fctx) return;
+        let w=0,h=0,dpr=1,frame=0,t=0;
+        const dots=[];
+        const resizeFallback=()=>{
+          w=innerWidth;h=innerHeight;dpr=Math.min(devicePixelRatio||1,1.5);
+          fallback.width=Math.round(w*dpr);fallback.height=Math.round(h*dpr);
+          fallback.style.width=w+"px";fallback.style.height=h+"px";
+          fctx.setTransform(dpr,0,0,dpr,0,0);
+          dots.length=0;
+          const cols=w<600?19:29,rows=w<600?12:17;
+          for(let r=0;r<rows;r++)for(let col=0;col<cols;col++)dots.push({
+            x:(col/(cols-1)-.5)*w*1.7,y:(r/(rows-1)-.5)*h*1.35,
+            z:r/(rows-1),phase:Math.random()*6.28,
+            color:["#d95cff","#a47bff","#62dcff","#6dffd6","#b5ff75"][((col*3+r*2)%5)]
+          });
+        };
+        const paint=()=>{
+          frame=requestAnimationFrame(paint);t+=.012;
+          fctx.clearRect(0,0,w,h);
+          const glow=fctx.createRadialGradient(w*.5,h*.5,0,w*.5,h*.5,Math.max(w,h)*.8);
+          glow.addColorStop(0,"rgba(83,39,151,.3)");glow.addColorStop(1,"rgba(4,6,17,0)");
+          fctx.fillStyle=glow;fctx.fillRect(0,0,w,h);
+          const projected=dots.map((p,i)=>{
+            const wave=Math.sin(i%29*.28+t+p.z*4)*24+Math.cos(Math.floor(i/29)*.4-t)*17;
+            const scale=1.15-p.z*.42;
+            return {x:w*.5+p.x*scale,y:h*.56+p.y*scale+wave,z:p.z,color:p.color};
+          });
+          fctx.lineWidth=.8;
+          for(let i=0;i<projected.length;i++){
+            const p=projected[i],col=i%(w<600?19:29),rows=w<600?12:17,cols=w<600?19:29;
+            const neighbors=[col<cols-1?i+1:-1, i+cols<projected.length?i+cols:-1, col<cols-1&&i+cols+1<projected.length?i+cols+1:-1];
+            for(const j of neighbors){if(j<0)continue;const q=projected[j];fctx.beginPath();fctx.moveTo(p.x,p.y);fctx.lineTo(q.x,q.y);fctx.strokeStyle=p.color;fctx.globalAlpha=.22+p.z*.42;fctx.stroke();}
+            fctx.globalAlpha=1;fctx.beginPath();fctx.arc(p.x,p.y,1.2+p.z*1.5,0,Math.PI*2);fctx.fillStyle=p.color;fctx.shadowColor=p.color;fctx.shadowBlur=12;fctx.fill();fctx.shadowBlur=0;
+          }
+          // Long flowing neon strands like the reference artwork.
+          for(let k=0;k<7;k++){fctx.beginPath();for(let i=0;i<=140;i++){const u=i/140,x=u*w,y=h*.42+(k-3)*15+Math.sin(u*6+t*.7+k*.7)*h*.13+Math.sin(u*12-t+k)*h*.035;if(i===0)fctx.moveTo(x,y);else fctx.lineTo(x,y);}const g=fctx.createLinearGradient(0,h*.2,w,h*.7);g.addColorStop(0,"rgba(205,85,255,0)");g.addColorStop(.3,"rgba(205,85,255,.6)");g.addColorStop(.7,"rgba(92,225,255,.55)");g.addColorStop(1,"rgba(100,255,210,0)");fctx.strokeStyle=g;fctx.lineWidth=k===3?2.5:1.3;fctx.stroke();}
+          for(let k=0;k<40;k++){const i=(k*11+Math.floor(t*20))%projected.length,p=projected[i];fctx.beginPath();fctx.arc(p.x,p.y,1.8,0,Math.PI*2);fctx.fillStyle=p.color;fctx.shadowColor=p.color;fctx.shadowBlur=16;fctx.fill();fctx.shadowBlur=0;}
+        };
+        resizeFallback();addEventListener("resize",resizeFallback,{passive:true});paint();
       }
     })();
   }
