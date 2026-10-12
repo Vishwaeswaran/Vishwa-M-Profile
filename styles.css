@@ -20,3 +20,5 @@
 /* Ensure the animated neural canvas remains visible behind every portfolio section. */
 #neural-canvas{position:fixed!important;inset:0!important;z-index:0!important;opacity:1!important;pointer-events:none!important}
 .site-header,main,footer{position:relative;z-index:1}
+
+#neural-fallback{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;z-index:0!important;display:block!important;pointer-events:none!important;opacity:1!important;mix-blend-mode:screen!important}
