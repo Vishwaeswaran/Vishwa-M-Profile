@@ -58,7 +58,7 @@
   const neuralCanvas = document.createElement('canvas');
   neuralCanvas.id = 'neural-canvas';
   neuralCanvas.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(neuralCanvas);
+  document.body.insertBefore(neuralCanvas, document.body.firstChild);
   const neuralCtx = neuralCanvas.getContext('2d', { alpha: true });
   let neuralWidth = 0, neuralHeight = 0, neuralDpr = 1, neuralNodes = [], neuralFrame = 0;
   let neuralLastTime = 0;
