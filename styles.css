@@ -46,3 +46,11 @@ body::after{z-index:9;opacity:.055}
 #neural-canvas{position:fixed!important;inset:0;width:100%;height:100%;z-index:0!important;pointer-events:none;opacity:.9;mix-blend-mode:screen}
 body>*:not(#neural-canvas){z-index:1}
 @media(max-width:720px){#neural-canvas{opacity:.58}}
+
+/* Fixed neural animation layering: canvas above static artwork, below all UI */
+#neural-canvas{position:fixed!important;inset:0!important;display:block!important;width:100vw!important;height:100vh!important;z-index:1!important;pointer-events:none!important;opacity:1!important;mix-blend-mode:screen!important}
+body>*:not(#neural-canvas){position:relative;z-index:2}
+body::before{z-index:0!important;pointer-events:none}
+body::after{z-index:8!important;pointer-events:none}
+.theme-toggle,.theme-button,[aria-label="Toggle theme"]{display:none!important}
+body.light-theme{color-scheme:dark!important;background-color:#070a11!important}
