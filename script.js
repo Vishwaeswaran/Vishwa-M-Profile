@@ -67,8 +67,8 @@
     neuralNodes = Array.from({ length: count }, (_, i) => ({
       x: Math.random() * neuralWidth,
       y: Math.random() * neuralHeight,
-      vx: (Math.random() - .5) * .22,
-      vy: (Math.random() - .5) * .2,
+      vx: (Math.random() - .5) * .48,
+      vy: (Math.random() - .5) * .38,
       radius: i % 7 === 0 ? 2.5 : 1.3 + Math.random() * 1.2,
       phase: Math.random() * Math.PI * 2,
       hue: Math.random() > .72 ? 265 : (Math.random() > .5 ? 145 : 205)
@@ -91,7 +91,7 @@
     if (time - neuralLastTime < 28) return;
     neuralLastTime = time;
     neuralCtx.clearRect(0, 0, neuralWidth, neuralHeight);
-    const linkDistance = neuralWidth < 700 ? 105 : 155;
+    const linkDistance = neuralWidth < 700 ? 125 : 185;
     for (const node of neuralNodes) {
       if (!reducedMotion) {
         node.x += node.vx;
@@ -110,7 +110,7 @@
         const dx = b.x - a.x, dy = b.y - a.y;
         const distance = Math.hypot(dx, dy);
         if (distance >= linkDistance) continue;
-        const alpha = (1 - distance / linkDistance) * .24;
+        const alpha = (1 - distance / linkDistance) * .34;
         neuralCtx.strokeStyle = 'rgba(104,130,255,' + alpha.toFixed(3) + ')';
         neuralCtx.lineWidth = .65;
         neuralCtx.beginPath();
