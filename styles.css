@@ -100,3 +100,12 @@ body>main{min-height:60vh}
 .site-header{background:rgba(7,10,17,.5)!important}
 .hero{min-height:min(760px,calc(100svh - 70px))!important}
 .hero-copy,.hero-visual{z-index:3!important}
+
+/* Definitive stacking correction: content must paint above the fixed neural canvas */
+body{isolation:auto!important}
+#neural-canvas{position:fixed!important;inset:0!important;z-index:0!important;pointer-events:none!important}
+body>*:not(#neural-canvas){position:relative!important;z-index:2!important}
+body::before{z-index:-1!important}
+body::after{z-index:10!important}
+.site-header,body>main,body>footer{position:relative!important;z-index:3!important}
+.hero,.hero-copy,.hero-visual{position:relative!important;z-index:3!important}
