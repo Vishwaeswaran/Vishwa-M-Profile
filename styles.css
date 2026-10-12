@@ -76,3 +76,17 @@ main{position:relative;z-index:2}
 @keyframes chip-float{0%,100%{translate:0 0}50%{translate:0 -7px}}
 @media(max-width:720px){#neural-canvas{opacity:.58!important}.site-header{backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}.hero{min-height:unset;padding-top:80px;padding-bottom:65px}}
 @media(prefers-reduced-motion:reduce){.hero-copy,.hero-visual,.float-chip{animation:none!important}}
+
+/* FIX: neural canvas is a background layer, never a foreground page element */
+html,body{min-height:100%;margin:0}
+body{position:relative;isolation:isolate;background-color:#070a11!important;background-image:radial-gradient(ellipse at 75% 22%,rgba(83,45,190,.17),transparent 45%),radial-gradient(ellipse at 15% 55%,rgba(0,110,165,.07),transparent 40%)!important;background-attachment:fixed!important}
+#neural-canvas{position:fixed!important;inset:0!important;display:block!important;width:100vw!important;height:100vh!important;height:100dvh!important;z-index:-1!important;pointer-events:none!important;opacity:.72!important;mix-blend-mode:screen!important}
+body>*:not(#neural-canvas){position:relative;z-index:auto!important}
+body::before{z-index:-2!important;pointer-events:none!important}
+body::after{z-index:10!important;pointer-events:none!important}
+.site-header,main,footer,.back-to-top{position:relative;z-index:1!important}
+.hero{position:relative;z-index:1!important;min-height:min(760px,calc(100svh - 70px));padding-top:clamp(65px,8vh,100px)}
+.hero-copy,.hero-visual{position:relative;z-index:2}
+.hero::before{display:none!important}
+.ambient{z-index:-1!important}
+@media(max-width:720px){.hero{min-height:unset;padding-top:65px}.site-header{z-index:5!important}#neural-canvas{opacity:.56!important}}
