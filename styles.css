@@ -138,3 +138,14 @@ body>main>.hero{display:grid!important;visibility:visible!important;opacity:1!im
 .hero-copy,.hero-visual,.site-header,main,main section,footer{visibility:visible!important;opacity:1!important}
 .reveal{opacity:1!important;transform:none!important;filter:none!important}
 @media(max-width:720px){body{background-size:cover,auto 78vh!important;background-position:center,62% 100px!important;background-attachment:scroll,scroll!important}body>main>.hero{display:flex!important}}
+
+/* FINAL ABOVE-THE-FOLD POSITION FIX: remove the large empty offset before the header */
+html{margin:0!important;padding:0!important;scroll-behavior:smooth}
+body{margin:0!important;padding:0!important;min-height:100vh!important;transform:none!important}
+body>.ambient{display:none!important;height:0!important;margin:0!important;padding:0!important}
+body>.site-header{margin-top:0!important;top:0!important;transform:none!important}
+body>main{margin-top:0!important;padding-top:0!important;transform:none!important}
+body>main>.hero{margin-top:0!important;transform:none!important;padding-top:72px!important;min-height:calc(100svh - 88px)!important}
+body>.site-header,body>main,body>footer{visibility:visible!important;opacity:1!important}
+@media(min-width:981px){body>main>.hero{padding-top:80px!important}}
+@media(max-width:720px){body>main>.hero{padding-top:52px!important;min-height:unset!important}}
