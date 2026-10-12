@@ -13,7 +13,7 @@
     let width=0,height=0,dpr=1,raf=0,lastFrame=0,phase=0;
     const pointer={x:0,y:0,tx:0,ty:0};
     let stars=[], mesh=[], cols=32, rows=17;
-    const colors=["#b85cff","#d16bff","#8c79ff","#63f4d1","#73dfff","#a4ffbd"];
+    const colors=["#e05cff","#d16bff","#9278ff","#63f4d1","#55dfff","#a4ff70"];
     function resize(){
       width=window.innerWidth;height=window.innerHeight;
       dpr=Math.min(window.devicePixelRatio||1,1.5);
@@ -42,12 +42,12 @@
       ctx.clearRect(0,0,width,height);
       // Deep-space glow, like the reference, while preserving page readability.
       const haze=ctx.createRadialGradient(width*.52,height*.52,0,width*.52,height*.52,Math.max(width,height)*.78);
-      haze.addColorStop(0,"rgba(40,26,85,.17)");haze.addColorStop(.48,"rgba(14,19,44,.1)");haze.addColorStop(1,"rgba(3,5,14,0)");
+      haze.addColorStop(0,"rgba(70,28,145,.38)");haze.addColorStop(.48,"rgba(14,19,44,.2)");haze.addColorStop(1,"rgba(3,5,14,0)");
       ctx.fillStyle=haze;ctx.fillRect(0,0,width,height);
       for(const s of stars){
         const tw=.65+.35*Math.sin(time*.0007+s.tw);
         ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-        ctx.fillStyle="rgba(205,210,255,"+(s.a*tw)+")";ctx.fill();
+        ctx.fillStyle="rgba(225,230,255,"+(s.a*tw)+")";ctx.fill();
       }
       pointer.x+=(pointer.tx-pointer.x)*.035;pointer.y+=(pointer.ty-pointer.y)*.035;
       const pts=[];
@@ -82,10 +82,10 @@
         }
         const grad=ctx.createLinearGradient(0,height*.2,width,height*.45);
         grad.addColorStop(0,"rgba(189,94,255,0)");
-        grad.addColorStop(.28,strand%2?"rgba(205,96,255,.25)":"rgba(134,119,255,.3)");
-        grad.addColorStop(.72,strand%2?"rgba(109,255,201,.27)":"rgba(96,207,255,.28)");
+        grad.addColorStop(.28,strand%2?"rgba(205,96,255,.55)":"rgba(134,119,255,.58)");
+        grad.addColorStop(.72,strand%2?"rgba(109,255,201,.5)":"rgba(96,207,255,.5)");
         grad.addColorStop(1,"rgba(116,239,214,0)");
-        ctx.strokeStyle=grad;ctx.lineWidth=strand===2?1.8:1;ctx.stroke();
+        ctx.strokeStyle=grad;ctx.lineWidth=strand===2?2.8:1.6;ctx.stroke();
       }
       // Perspective mesh connections.
       for(let r=0;r<rows;r++){
@@ -94,17 +94,17 @@
           const near=pts[r+1]?.[col];
           const right=pts[r][col+1];
           const diag=pts[r+1]?.[col+1];
-          const depthAlpha=.12+(r/rows)*.36;
-          const stroke=(q,alpha)=>{if(!q)return;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle="rgba(151,133,255,"+(alpha)+")";ctx.lineWidth=.55+(r/rows)*.3;ctx.stroke();};
+          const depthAlpha=.22+(r/rows)*.48;
+          const stroke=(q,alpha)=>{if(!q)return;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle="rgba(151,133,255,"+(Math.min(.78,alpha*1.65))+")";ctx.lineWidth=.55+(r/rows)*.3;ctx.stroke();};
           stroke(right,depthAlpha*.8);stroke(near,depthAlpha);
           if(diag && (col%2===0 || r%3===0))stroke(diag,depthAlpha*.42);
           // Glowing neuron points with varied colors and soft bloom.
           const pulse=.65+.35*Math.sin(time*.0013+p.u*11+p.v*8);
           const radius=(.7+(r/rows)*1.5)*pulse;
           ctx.beginPath();ctx.arc(p.x,p.y,radius*4.6,0,Math.PI*2);
-          ctx.fillStyle=p.color;ctx.globalAlpha=.09+(r/rows)*.1;ctx.fill();ctx.globalAlpha=1;
+          ctx.fillStyle=p.color;ctx.globalAlpha=.2+(r/rows)*.22;ctx.fill();ctx.globalAlpha=1;
           ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);
-          ctx.fillStyle=p.color;ctx.globalAlpha=.52+(r/rows)*.42;ctx.fill();ctx.globalAlpha=1;
+          ctx.fillStyle=p.color;ctx.globalAlpha=.72+(r/rows)*.28;ctx.fill();ctx.globalAlpha=1;
         }
       }
       // Traveling light packets along the network.
