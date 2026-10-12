@@ -2,27 +2,8 @@
   const body = document.body;
   const menu = document.querySelector('.menu-toggle');
   const nav = document.querySelector('.desktop-nav');
-  const themeButton = document.querySelector('.theme-toggle');
-  const themeGlyph = document.querySelector('.theme-glyph');
-  const topButton = document.querySelector('.back-to-top');
-  const year = document.querySelector('#year');
-  if (year) year.textContent = new Date().getFullYear();
-
-  // Restore the visitor's preferred appearance when available.
-  try {
-    const savedTheme = localStorage.getItem('vm-theme');
-    if (savedTheme === 'light') body.classList.add('light-theme');
-  } catch (_) {}
-  const syncThemeGlyph = () => {
-    if (themeGlyph) themeGlyph.textContent = body.classList.contains('light-theme') ? '☼' : '◐';
-    if (themeButton) themeButton.setAttribute('aria-label', body.classList.contains('light-theme') ? 'Switch to dark theme' : 'Switch to light theme');
-  };
-  syncThemeGlyph();
-  themeButton?.addEventListener('click', () => {
-    body.classList.toggle('light-theme');
-    syncThemeGlyph();
-    try { localStorage.setItem('vm-theme', body.classList.contains('light-theme') ? 'light' : 'dark'); } catch (_) {}
-  });
+  document.body.classList.remove('light-theme');
+  try { localStorage.removeItem('vm-theme'); } catch (_) {}
 
   menu?.addEventListener('click', () => {
     const opened = nav.classList.toggle('open');
