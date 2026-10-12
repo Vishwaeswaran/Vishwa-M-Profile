@@ -124,3 +124,17 @@ main{position:relative!important;z-index:1!important;min-height:60vh}
 @keyframes neural-drift{from{background-position:center,center,66% 8%,center}to{background-position:center,center,70% 15%,center}}
 @media(max-width:720px){body::before{background-size:72px 72px,72px 72px,auto 78vh,cover;background-position:center,center,62% 5%,center;opacity:.28;animation-duration:36s}.hero{min-height:unset!important;padding-top:65px!important}}
 @media(prefers-reduced-motion:reduce){body::before{animation:none}}
+
+/* EMERGENCY VISIBILITY RESET: put content back in normal document flow */
+html,body{min-height:100%!important;height:auto!important;overflow-x:hidden!important}
+body{display:block!important;position:static!important;isolation:auto!important;background-color:#070a11!important;background-image:radial-gradient(ellipse at 75% 18%,rgba(79,42,174,.18),transparent 46%),url("./neural-bg.svg")!important;background-repeat:no-repeat,no-repeat!important;background-size:cover,min(100vw,1600px) auto!important;background-position:center,68% 90px!important;background-attachment:fixed,fixed!important}
+body::before,body::after{display:none!important;content:none!important}
+#neural-canvas{display:none!important}
+body>.ambient{display:none!important}
+body>.site-header,body>main,body>footer,body>.back-to-top{display:block!important;position:relative!important;inset:auto!important;z-index:auto!important;opacity:1!important;visibility:visible!important;transform:none}
+body>.site-header{display:flex!important;position:relative!important;z-index:5!important}
+body>main{min-height:60vh!important}
+body>main>.hero{display:grid!important;visibility:visible!important;opacity:1!important;transform:none!important}
+.hero-copy,.hero-visual,.site-header,main,main section,footer{visibility:visible!important;opacity:1!important}
+.reveal{opacity:1!important;transform:none!important;filter:none!important}
+@media(max-width:720px){body{background-size:cover,auto 78vh!important;background-position:center,62% 100px!important;background-attachment:scroll,scroll!important}body>main>.hero{display:flex!important}}
