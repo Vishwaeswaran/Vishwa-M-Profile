@@ -109,3 +109,18 @@ body::before{z-index:-1!important}
 body::after{z-index:10!important}
 .site-header,body>main,body>footer{position:relative!important;z-index:3!important}
 .hero,.hero-copy,.hero-visual{position:relative!important;z-index:3!important}
+
+/* Recovery: stable content-first layout with animated neural artwork behind the page */
+html,body{min-height:100%;margin:0}
+body{position:relative!important;isolation:auto!important;overflow-x:hidden!important;background:#070a11!important;color:var(--text)}
+#neural-canvas{display:none!important}
+body::before{content:"";position:fixed;inset:0;z-index:0!important;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px),url("./neural-bg.svg"),radial-gradient(ellipse at 75% 28%,rgba(79,42,174,.16),transparent 48%);background-size:72px 72px,72px 72px, min(100vw,1600px) auto,cover;background-position:center,center,68% 12%,center;background-repeat:repeat,repeat,no-repeat,no-repeat;opacity:.48;animation:neural-drift 28s ease-in-out infinite alternate}
+body::after{z-index:10!important;pointer-events:none}
+body>.ambient,body>.site-header,body>main,body>footer,body>.back-to-top{position:relative!important;z-index:1!important}
+.site-header{z-index:12!important;background:rgba(7,10,17,.62);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+main{position:relative!important;z-index:1!important;min-height:60vh}
+.hero{position:relative!important;z-index:1!important;min-height:min(760px,calc(100svh - 70px))!important;padding-top:clamp(65px,8vh,100px)!important}
+.hero-copy,.hero-visual{position:relative!important;z-index:2!important}
+@keyframes neural-drift{from{background-position:center,center,66% 8%,center}to{background-position:center,center,70% 15%,center}}
+@media(max-width:720px){body::before{background-size:72px 72px,72px 72px,auto 78vh,cover;background-position:center,center,62% 5%,center;opacity:.28;animation-duration:36s}.hero{min-height:unset!important;padding-top:65px!important}}
+@media(prefers-reduced-motion:reduce){body::before{animation:none}}
