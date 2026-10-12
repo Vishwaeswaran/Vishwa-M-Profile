@@ -2,131 +2,157 @@
   "use strict";
   const canvas = document.getElementById("neural-canvas");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const ctx = canvas && canvas.getContext("2d", { alpha: true });
+
   const card = document.getElementById("profile-card");
   const year = document.getElementById("year");
   if (year) year.textContent = new Date().getFullYear();
 
-  // 3D particle-web background inspired by the supplied reference image.
-  // The mesh is projected in perspective and continuously ripples like a living neural field.
-  if (canvas && ctx) {
-    let width=0,height=0,dpr=1,raf=0,lastFrame=0,phase=0;
-    const pointer={x:0,y:0,tx:0,ty:0};
-    let stars=[], mesh=[], cols=32, rows=17;
-    const colors=["#e05cff","#d16bff","#9278ff","#63f4d1","#55dfff","#a4ff70"];
-    function resize(){
-      width=window.innerWidth;height=window.innerHeight;
-      dpr=Math.min(window.devicePixelRatio||1,1.5);
-      canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
-      canvas.style.width=width+"px";canvas.style.height=height+"px";
-      ctx.setTransform(dpr,0,0,dpr,0,0);
-      cols=width<600?22:34;rows=width<600?13:18;
-      stars=Array.from({length:Math.min(210,Math.round(width*height/5200))},()=>({
-        x:Math.random()*width,y:Math.random()*height,z:.2+Math.random()*.8,
-        r:.35+Math.random()*1.25,a:.15+Math.random()*.65,tw:Math.random()*6.28
-      }));
-      mesh=[];
-      for(let r=0;r<rows;r++)for(let col=0;col<cols;col++)
-        mesh.push({r,col,seed:Math.random()*6.28,color:colors[Math.floor(Math.random()*colors.length)]});
-    }
-    function project(x,y,z){
-      const focal=Math.max(width,height)*.92;
-      const cameraZ=700;
-      const scale=focal/(focal+z+cameraZ);
-      return {x:width/2+x*scale+pointer.x*-.22*scale,y:height*.57+y*scale+pointer.y*-.16*scale,scale};
-    }
-    function draw(time){
-      raf=0;if(document.hidden)return;
-      if(time-lastFrame<25){raf=requestAnimationFrame(draw);return;}
-      lastFrame=time;phase=time*(reduceMotion?.00018:.00042);
-      ctx.clearRect(0,0,width,height);
-      // Deep-space glow, like the reference, while preserving page readability.
-      const haze=ctx.createRadialGradient(width*.52,height*.52,0,width*.52,height*.52,Math.max(width,height)*.78);
-      haze.addColorStop(0,"rgba(70,28,145,.38)");haze.addColorStop(.48,"rgba(14,19,44,.2)");haze.addColorStop(1,"rgba(3,5,14,0)");
-      ctx.fillStyle=haze;ctx.fillRect(0,0,width,height);
-      for(const s of stars){
-        const tw=.65+.35*Math.sin(time*.0007+s.tw);
-        ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
-        ctx.fillStyle="rgba(225,230,255,"+(s.a*tw)+")";ctx.fill();
-      }
-      pointer.x+=(pointer.tx-pointer.x)*.035;pointer.y+=(pointer.ty-pointer.y)*.035;
-      const pts=[];
-      for(let r=0;r<rows;r++){
-        const line=[];
-        for(let col=0;col<cols;col++){
-          const u=col/(cols-1),v=r/(rows-1);
-          // A perspective mesh with long rolling waves and a dense lower network.
-          const x=(u-.5)*width*1.72;
-          const depth=v;
-          const y=(v-.43)*height*1.2 + Math.sin(u*7.1+phase*1.8+v*2.2)*42
-            +Math.sin(u*13.5-phase*1.15+v*3.4)*16
-            +Math.cos(u*4.4-phase+v*5.2)*18;
-          const z=100+v*650+Math.sin(u*5.5+phase)*34;
-          const p=project(x,y,z);
-          p.u=u;p.v=v;p.wave=y;p.col=col;p.row=r;
-          p.color=colors[(col+r*2)%colors.length];
-          line.push(p);
+  // Real-time 3D neural universe rendered with Three.js/WebGL.
+  // Dynamic import keeps the rest of the portfolio functional if WebGL/CDN is unavailable.
+  if (canvas) {
+    (async () => {
+      try {
+        const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js");
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: "high-performance" });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+        renderer.setSize(window.innerWidth, window.innerHeight, false);
+        renderer.setClearColor(0x050712, 0);
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x070817, 0.00075);
+        const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 1, 2600);
+        camera.position.set(0, 10, 760);
+        const root = new THREE.Group();
+        scene.add(root);
+        const palette = [0xc75cff, 0x9d72ff, 0x65dfff, 0x64f5d0, 0x8dff8c, 0xff69d4];
+        const cols = window.innerWidth < 640 ? 25 : 43;
+        const rows = window.innerWidth < 640 ? 14 : 23;
+        const vertices = [];
+        const base = [];
+        const colors = [];
+        const indices = [];
+        const c = new THREE.Color();
+        for (let r = 0; r < rows; r++) {
+          for (let col = 0; col < cols; col++) {
+            const u = col / (cols - 1), v = r / (rows - 1);
+            const x = (u - .5) * Math.min(window.innerWidth * 1.65, 1900);
+            const y = (v - .5) * Math.min(window.innerHeight * 1.25, 1100);
+            const z = -80 - v * 430 + Math.sin(u * 7 + v * 4) * 30;
+            base.push(x, y, z);
+            vertices.push(x, y, z);
+            c.setHex(palette[(col * 3 + r * 2) % palette.length]);
+            colors.push(c.r, c.g, c.b);
+            const i = r * cols + col;
+            if (col < cols - 1) indices.push(i, i + 1);
+            if (r < rows - 1) indices.push(i, i + cols);
+            if (r < rows - 1 && col < cols - 1 && ((r + col) % 2 === 0)) indices.push(i, i + cols + 1);
+            if (r < rows - 1 && col > 0 && ((r + col) % 3 === 0)) indices.push(i, i + cols - 1);
+          }
         }
-        pts.push(line);
-      }
-      // Curved flowing strands running through the upper portion of the scene.
-      for(let strand=0;strand<5;strand++){
-        ctx.beginPath();
-        for(let i=0;i<=100;i++){
-          const u=i/100;
-          const x=(u-.5)*width*1.9;
-          const y=(strand-2)*22+Math.sin(u*4.8+phase*1.2+strand*.65)*height*.19
-            +Math.sin(u*8.4-phase*.7+strand)*height*.035-height*.07;
-          const p=project(x,y,250+strand*24);
-          if(i===0)ctx.moveTo(p.x,p.y);else ctx.lineTo(p.x,p.y);
+        const netGeo = new THREE.BufferGeometry();
+        netGeo.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3).setUsage(THREE.DynamicDrawUsage));
+        netGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+        netGeo.setIndex(indices);
+        const net = new THREE.LineSegments(netGeo, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: .68, blending: THREE.AdditiveBlending, depthWrite: false }));
+        root.add(net);
+        const nodeGeo = new THREE.BufferGeometry();
+        nodeGeo.setAttribute("position", new THREE.Float32BufferAttribute(vertices.slice(), 3).setUsage(THREE.DynamicDrawUsage));
+        nodeGeo.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+        const nodes = new THREE.Points(nodeGeo, new THREE.PointsMaterial({ size: 4.4, vertexColors: true, transparent: true, opacity: .98, blending: THREE.AdditiveBlending, sizeAttenuation: true, depthWrite: false }));
+        root.add(nodes);
+        // Star field adds depth behind the connected neuron mesh.
+        const starPositions = [], starColors = [];
+        for (let i = 0; i < 1500; i++) {
+          starPositions.push((Math.random() - .5) * 2100, (Math.random() - .5) * 1200, -Math.random() * 1100 - 120);
+          c.setHSL(.56 + Math.random() * .25, .55, .55 + Math.random() * .4);
+          starColors.push(c.r, c.g, c.b);
         }
-        const grad=ctx.createLinearGradient(0,height*.2,width,height*.45);
-        grad.addColorStop(0,"rgba(189,94,255,0)");
-        grad.addColorStop(.28,strand%2?"rgba(205,96,255,.55)":"rgba(134,119,255,.58)");
-        grad.addColorStop(.72,strand%2?"rgba(109,255,201,.5)":"rgba(96,207,255,.5)");
-        grad.addColorStop(1,"rgba(116,239,214,0)");
-        ctx.strokeStyle=grad;ctx.lineWidth=strand===2?2.8:1.6;ctx.stroke();
-      }
-      // Perspective mesh connections.
-      for(let r=0;r<rows;r++){
-        for(let col=0;col<cols;col++){
-          const p=pts[r][col];
-          const near=pts[r+1]?.[col];
-          const right=pts[r][col+1];
-          const diag=pts[r+1]?.[col+1];
-          const depthAlpha=.22+(r/rows)*.48;
-          const stroke=(q,alpha)=>{if(!q)return;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle="rgba(151,133,255,"+(Math.min(.78,alpha*1.65))+")";ctx.lineWidth=.55+(r/rows)*.3;ctx.stroke();};
-          stroke(right,depthAlpha*.8);stroke(near,depthAlpha);
-          if(diag && (col%2===0 || r%3===0))stroke(diag,depthAlpha*.42);
-          // Glowing neuron points with varied colors and soft bloom.
-          const pulse=.65+.35*Math.sin(time*.0013+p.u*11+p.v*8);
-          const radius=(.7+(r/rows)*1.5)*pulse;
-          ctx.beginPath();ctx.arc(p.x,p.y,radius*4.6,0,Math.PI*2);
-          ctx.fillStyle=p.color;ctx.globalAlpha=.2+(r/rows)*.22;ctx.fill();ctx.globalAlpha=1;
-          ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);
-          ctx.fillStyle=p.color;ctx.globalAlpha=.72+(r/rows)*.28;ctx.fill();ctx.globalAlpha=1;
+        const starGeo = new THREE.BufferGeometry();
+        starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPositions, 3));
+        starGeo.setAttribute("color", new THREE.Float32BufferAttribute(starColors, 3));
+        const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ size: 1.7, vertexColors: true, transparent: true, opacity: .75, blending: THREE.AdditiveBlending, depthWrite: false }));
+        scene.add(stars);
+        // Curved, luminous data streams arc across the field like the supplied reference.
+        const trails = new THREE.Group();
+        for (let k = 0; k < 7; k++) {
+          const points = [];
+          for (let j = 0; j <= 180; j++) {
+            const u = j / 180;
+            points.push(new THREE.Vector3((u - .5) * 1900, (k - 3) * 24 + Math.sin(u * 5.2 + k * .62) * 155 + Math.sin(u * 9.5 + k) * 38 + 75, -220 - k * 16 - Math.sin(u * 6 + k) * 30));
+          }
+          const geo = new THREE.BufferGeometry().setFromPoints(points);
+          const material = new THREE.LineBasicMaterial({ color: palette[k % palette.length], transparent: true, opacity: .32 + (k % 3) * .09, blending: THREE.AdditiveBlending, depthWrite: false });
+          trails.add(new THREE.Line(geo, material));
         }
+        root.add(trails);
+        // Traveling bright packets move through the mesh.
+        const packetCount = 90;
+        const packetPositions = new Float32Array(packetCount * 3);
+        const packetColors = new Float32Array(packetCount * 3);
+        for (let i = 0; i < packetCount; i++) {
+          c.setHex(palette[i % palette.length]);
+          packetColors.set([c.r, c.g, c.b], i * 3);
+        }
+        const packetGeo = new THREE.BufferGeometry();
+        packetGeo.setAttribute("position", new THREE.BufferAttribute(packetPositions, 3).setUsage(THREE.DynamicDrawUsage));
+        packetGeo.setAttribute("color", new THREE.BufferAttribute(packetColors, 3));
+        const packets = new THREE.Points(packetGeo, new THREE.PointsMaterial({ size: 6.5, vertexColors: true, transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false }));
+        root.add(packets);
+        const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
+        const onPointer = e => { pointer.tx = (e.clientX / Math.max(1, innerWidth) - .5) * 28; pointer.ty = (e.clientY / Math.max(1, innerHeight) - .5) * -18; };
+        window.addEventListener("pointermove", onPointer, { passive: true });
+        const resize = () => {
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
+          renderer.setSize(window.innerWidth, window.innerHeight, false);
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+        };
+        window.addEventListener("resize", resize, { passive: true });
+        let raf = 0, last = 0, elapsed = 0;
+        const animate = now => {
+          raf = requestAnimationFrame(animate);
+          if (now - last < 24) return;
+          const dt = Math.min(.05, (now - last) / 1000 || .016);
+          last = now; elapsed += dt;
+          const pos = netGeo.attributes.position.array;
+          const npos = nodeGeo.attributes.position.array;
+          for (let i = 0; i < base.length / 3; i++) {
+            const x = base[i * 3], y = base[i * 3 + 1], z = base[i * 3 + 2];
+            const col = i % cols, row = Math.floor(i / cols);
+            const wave = Math.sin(col * .32 + elapsed * 1.15 + row * .17) * 22 + Math.cos(row * .37 - elapsed * .9 + col * .11) * 13;
+            pos[i * 3] = x;
+            pos[i * 3 + 1] = y + wave;
+            pos[i * 3 + 2] = z + Math.sin(col * .2 + elapsed) * 20;
+            npos[i * 3] = pos[i * 3]; npos[i * 3 + 1] = pos[i * 3 + 1]; npos[i * 3 + 2] = pos[i * 3 + 2];
+          }
+          netGeo.attributes.position.needsUpdate = true;
+          nodeGeo.attributes.position.needsUpdate = true;
+          for (let i = 0; i < packetCount; i++) {
+            const progress = (elapsed * (.12 + (i % 7) * .012) + i / packetCount) % 1;
+            const col = Math.floor(progress * (cols - 1));
+            const row = (i * 7 + Math.floor(elapsed * 2 + i)) % (rows - 1);
+            const a = row * cols + col, b = (row + 1) * cols + Math.min(cols - 1, col + 1);
+            const t = (progress * (cols - 1)) % 1;
+            packetPositions[i * 3] = pos[a * 3] + (pos[b * 3] - pos[a * 3]) * t;
+            packetPositions[i * 3 + 1] = pos[a * 3 + 1] + (pos[b * 3 + 1] - pos[a * 3 + 1]) * t;
+            packetPositions[i * 3 + 2] = pos[a * 3 + 2] + (pos[b * 3 + 2] - pos[a * 3 + 2]) * t + 2;
+          }
+          packetGeo.attributes.position.needsUpdate = true;
+          pointer.x += (pointer.tx - pointer.x) * .035;
+          pointer.y += (pointer.ty - pointer.y) * .035;
+          root.rotation.y = pointer.x * .0018 + Math.sin(elapsed * .22) * .025;
+          root.rotation.x = pointer.y * .0014 + Math.sin(elapsed * .18) * .018;
+          trails.rotation.y = root.rotation.y * .65;
+          stars.rotation.y = Math.sin(elapsed * .04) * .015;
+          renderer.render(scene, camera);
+        };
+        document.addEventListener("visibilitychange", () => { if (!document.hidden && !raf) raf = requestAnimationFrame(animate); });
+        animate(0);
+      } catch (error) {
+        console.error("3D neural background could not initialize:", error);
+        canvas.style.display = "none";
       }
-      // Traveling light packets along the network.
-      for(let k=0;k<12;k++){
-        const r=(k*3+Math.floor(time/620))%(rows-1);
-        const col=(k*5+Math.floor(time/410))%(cols-1);
-        const a=pts[r][col],b=pts[r+1][Math.min(cols-1,col+1)];
-        const t=(time*.00055+k*.173)%1;
-        const x=a.x+(b.x-a.x)*t,y=a.y+(b.y-a.y)*t;
-        ctx.beginPath();ctx.arc(x,y,1.1+(k%3)*.35,0,Math.PI*2);
-        ctx.fillStyle=k%3===0?"#d78aff":k%3===1?"#7fffe0":"#a8a0ff";
-        ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=10;ctx.fill();ctx.shadowBlur=0;
-      }
-      raf=requestAnimationFrame(draw);
-    }
-    function start(){if(!raf&&!document.hidden)raf=requestAnimationFrame(draw);}
-    function stop(){if(raf)cancelAnimationFrame(raf);raf=0;}
-    window.addEventListener("resize",resize,{passive:true});
-    window.addEventListener("pointermove",e=>{pointer.tx=(e.clientX/Math.max(1,width)-.5)*45;pointer.ty=(e.clientY/Math.max(1,height)-.5)*35;},{passive:true});
-    document.addEventListener("visibilitychange",()=>document.hidden?stop():start());
-    resize();start();
-  } else if(canvas && !ctx) { canvas.style.display="none"; }
+    })();
+  }
 
   if (card && !reduceMotion && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
     const visual = card.closest(".hero-visual");
